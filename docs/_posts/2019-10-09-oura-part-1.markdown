@@ -1,0 +1,119 @@
+---
+layout: post
+title:  "Part 1: Flask + Oura"
+date:   2019-10-10 12:23:38 -0600
+categories: jekyll update
+---
+
+post
+## Flask app to interface the Oura Cloud API
+
+The goal of this app is a minimalist design and to streamline user login through the web interface. The Python 3 app is powered by the Flask framework for the back-end and React on the front-end. 
+
+The Oura API uses the OAuth2 protocol for authentication, and requires a user to first log in to Oura to authorize the app to access the account's data (see: [Oura docs](https://cloud.ouraring.com/docs/)). There are a number of ways to do this such as with a [3rd party oura Python library](https://python-ouraring.readthedocs.io/en/latest/auth.html), the [requests Python library](https://sararobinson.dev/2019/05/24/analyzing-sleep-quality-oura-bigquery.html), [Postman](https://medium.com/@lserafin/exploring-the-oura-cloud-api-with-postman-4d1c4abcd888), and through the command line with [curl](https://blog.adafruit.com/2017/10/02/using-curl-to-collect-oura-ring-sleep-activity-and-readiness-data/). 
+
+####1. Create an application in your Oura Cloud portal
+Log in to your Oura Cloud account and create a "New Application" in the [Applications Section](https://cloud.ouraring.com/oauth/applications). Complete the indicated fields, and set "Redirect URIs" to `http://0.0.0.0:3030/callback` (which you'll set up in the next step). The server-side authorization urls for your application appears on the bottom of the page and looks like:
+
+`https://cloud.ouraring.com/oauth/authorize?client_id=<YOUR-CLIENT-ID>&state=XXX​&response_type=code`.
+
+[img]
+
+This URL brings up the Oura account verification page which redirects to your callback URL once the user logs in and selects what data to share.
+
+####2. Authenticate with the Oura Cloud API using Requests_OAuthlib
+
+The [Requests_OAuthlib](https://requests-oauthlib.readthedocs.io/en/latest/) library instantiates an OAuth2 client that interfaces the Oura Cloud API. Configuring it grants permission to make requests and return the user's data. It requires parameters referencing your app, and an access token returned from Oura response url after a successful login. 
+
+A registered OAuth application has a unique Client ID and Client Secret. Copy the Client ID and Client Secret from the Oura app page you created in the previous step. These can be placed at the beginning of the app while running locally, but should be placed in hidden files once in production.
+
+``` python
+CLIENT_ID = 'YOUR_CLIENT_ID'
+CLIENT_SECRET = 'YOUR_CLIENT_SECRET'
+AUTH_URL = 'https://cloud.ouraring.com/oauth/authorize'
+TOKEN_URL = 'https://api.ouraring.com/oauth/token'
+```
+
+To create a simple web user interface we use Flask to route the user's browser through three pages: **/oura_login** sets up a session for the app and redirect user to login at the Oura OAuth page,  **/callback** asserts the login and retrieves the user account access_token, and **/profile** requests and displays the user's information. 
+
+The **login** page creates an OAuth2Session for your app, and stores its state in a session, which makes it available from one request to the next. It redirects the browser to the Oura login page to confirm authorization.
+
+A successfully login redirects to the **callback** page with an access token specified in the response url. The callback page fetches the token and stores it in the session, then redirects the browser to the user profile.
+
+The user's authorization token grants permission to make requests to the Oura API for the user's data. The **profile** page requests the user info with the following call `GET /v1/userinfo`. Notice how `oauth_token` is extracted from the session and appended to the requests url. The result is displayed as a JSON.
+
+``` python
+import requests
+import os
+
+from flask import Flask, request, redirect, session, url_for
+from requests_oauthlib import OAuth2Session
+
+CLIENT_ID = '7FBKRJUEG5LGRYUW'
+CLIENT_SECRET = 'GNJ6HQBGIQB3ELI7IQNAYZIJORAVLGNL'
+AUTH_URL = 'https://cloud.ouraring.com/oauth/authorize'
+TOKEN_URL = 'https://api.ouraring.com/oauth/token'
+
+app = Flask(__name__)
+
+
+@app.route('/oura_login')
+def oura_login():
+    """Redirect to the OAuth provider login page.
+    """
+
+    oura_session = OAuth2Session(CLIENT_ID)
+
+    # URL for Oura's authorization page.
+    authorization_url, state = oura_session.authorization_url(AUTH_URL)
+    session['oauth_state'] = state
+    return redirect(authorization_url)
+
+
+@app.route('/callback')
+def callback():
+    """Retrieve acces_token from Oura response url. Redirect to profile page.
+    """
+
+    oura_session = OAuth2Session(CLIENT_ID, state=session['oauth_state'])
+    session['oauth'] = oura_session.fetch_token(
+                        TOKEN_URL,
+                        client_secret=CLIENT_SECRET,
+                        authorization_response=request.url)
+
+    return redirect(url_for('.profile'))
+
+
+@app.route('/profile')
+def profile():
+    """User profile.
+    """
+    oauth_token = session['oauth']['access_token']
+    result = requests.get('https://api.ouraring.com/v1/userinfo?access_token=' + oauth_token)
+    return str(result.json()) 
+
+
+if __name__ == '__main__':
+
+    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+    app.secret_key = os.urandom(24)
+    app.run(debug=False, host='0.0.0.0', port=3030)
+
+```
+
+####3. Execute the Flask app and request the user's profile information
+Execute the app locally from the command line with `python3 oura/app.py` and visit http://0.0.0.0:3030/ on the browser. Click through the Oura login page, ensuring to keep the personal information access boxes ticked. The response will be displayed as a json:
+
+``` json
+{
+     "age": 30,
+     "weight": 80,
+     "gender": "male",
+     "email": "sleeper@oura.cloud"
+}
+```
+Reaching this step asserts the app successfully authenticated which will allow the app to request the user's daily summaries.
+
+####4. Request and visualize the user's sleep data
+
+The Oura Cloud API provides the user information, and the user's data in 3 categories: sleep, activity, and readiness. Their schema and data types of available data appear in the [Daily Summary](https://cloud.ouraring.com/docs/daily-summaries) page.

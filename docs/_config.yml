@@ -18,20 +18,43 @@
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
 
-title: Build a Flask app to interface the Oura Cloud API
+title: Mind & Sleep Data
 email: mindatasleep@gmail.com
-description: >- # this means to ignore newlines until "baseurl:"
-Study the relationship between sleep and performance using the Oura wearable 
-sleep tracker and some simple math. 
-baseurl: "https://github.com/mindatasleep" # the subpath of your site, e.g. /blog
-url: "/oura" # the base hostname & protocol for your site, e.g. http://example.com
-twitter_username: jekyllrb
-github_username:  jekyll
+description: >- 
+  Looking at the relationship between sleep and performance using
+  the Oura wearable sleep tracker and simple math.
+baseurl: "" # the subpath of your site, e.g. /blog
+url: "mindatasleep.github.io/" # the base hostname & protocol for your site, e.g. http://example.com
+twitter_username: ""
+github_username:  ""
+version: 1.0
+
+# Author
+author:
+  name: "P. Guzman"
+  url: ""
+
+
+# Pagination settings
+# gems: [jekyll-paginate, pygments]
+plugins: [jekyll-paginate, pygments]
+paginate: 5
+paginate_path: "page:num"
+github:
+  repo: https://github.com/mindatasleep/oura
 
 # Build settings
-theme: dbyll
+# theme: dbyll
 plugins:
   - jekyll-feed
+
+# Dependencies
+markdown: redcarpet
+highlighter: pygments
+
+# Permalinks
+permalink: pretty
+# relative_permalinks: true
 
 # Exclude from processing.
 # The following items will not be processed, by default.
