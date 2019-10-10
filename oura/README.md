@@ -116,7 +116,7 @@ if __name__ == '__main__':
 ```
 
 ####3. Execute the Flask app and request the user's profile information
-Execute the app locally from the command line with `python3 oura/app.py` and visit http://0.0.0.0:3030/ on the browser. Click through the Oura login page, ensuring to keep the personal information access boxes ticked. The response will be displayed as a json:
+Execute the app locally from the command line with `python3 oura/app.py` and visit http://0.0.0.0:3030/oura_login on the browser. Click through the Oura login page, ensuring to keep the personal information access boxes ticked. The response will be displayed as a json:
 
 ``` json
 {
@@ -131,10 +131,4 @@ Reaching this step asserts the app successfully authenticated which will allow t
 ####4. Request and visualize the user's sleep data
 
 The Oura Cloud API provides the user information, and the user's data in 3 categories: sleep, activity, and readiness. Their schema and data types of available data appear in the [Daily Summary](https://cloud.ouraring.com/docs/daily-summaries) page.
-
-We want to
-
-GET /v1/userinfo
-https://api.ouraring.com/v1/sleep?start=YYYY-MM-DD&end=YYYY-MM-DD
-
 
