@@ -1,9 +1,11 @@
 import requests
+import pathlib
 import os
 
-from flask import Flask, request, redirect, session, url_for
+from flask import Flask, request, redirect, session, url_for, render_template
 from requests_oauthlib import OAuth2Session
 import json
+
 
 with open('oura_app_credentials.json') as json_file:
     credentials = json.load(json_file)
@@ -13,7 +15,15 @@ CLIENT_SECRET = credentials['CLIENT_SECRET']
 AUTH_URL = 'https://cloud.ouraring.com/oauth/authorize'
 TOKEN_URL = 'https://api.ouraring.com/oauth/token'
 
+DATA_DIR = pathlib.Path(os.getenv('DATA_DIR', './data'))
+
 app = Flask(__name__)
+
+
+@app.route('/')
+def index():
+    """Home page."""
+    return render_template("index.html")
 
 
 @app.route('/oura_login')
@@ -47,29 +57,40 @@ def callback():
 def profile():
     """User profile.
     """
+
+    # Request data
     oauth_token = session['oauth']['access_token']
-    result = requests.get('https://api.ouraring.com/v1/userinfo?access_token=' + oauth_token)
-    return str(result.json()) 
+    result = requests.get(
+        'https://api.ouraring.com/v1/userinfo?access_token=' + oauth_token)
+
+    # Write to file
+    fp = DATA_DIR.joinpath('profile.json').as_posix()
+    with open(fp, 'w') as outfile:
+        json.dump(result.json(), outfile)
+
+    return str(result.json())
 
 
-@app.route('/sleep')
-def sleep():
-    """sleep profile.
+@app.route('/summaries')
+def summaries():
+    """Request data for sleep, activity, and readiness summaries, and either 
+    write to PostgreSQL database or save as JSON files in `data/`.
     """
 
     # Request data
+    oauth_token = session['oauth']['access_token']
     summaries = ['sleep', 'activity', 'readiness']
-    data_type = summaries[0]
-    url = 'https://api.ouraring.com/v1/' + data_type + '?start=2019-03-21'
-    # url = 'https://api.ouraring.com/v1/userinfo/'
-    # querystring = {"start": "2019-09-01", "end": "2019-10-10"}
+    for data_type in summaries:
+        url = 'https://api.ouraring.com/v1/' + data_type + '?start=2018-01-01'
 
-    oauth = session['oauth']
-    oauth_token = oauth['access_token']
+        result = requests.get(url, headers={'Content-Type': 'application/json',
+                                            'Authorization': 'Bearer {}'
+                                            .format(oauth_token)})
 
-    result = requests.get(url, headers={'Content-Type': 'application/json',
-                                        'Authorization': 'Bearer {}'
-                                        .format(oauth_token)})
+        # Write to file
+        fp = DATA_DIR.joinpath(data_type + '.json').as_posix()
+        with open(fp, 'w') as outfile:
+            json.dump(result.json(), outfile)
 
     return str(result.json())
 
