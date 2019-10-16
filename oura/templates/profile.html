@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Profile{% endblock %}
+
+{% block content %}
+
+    <h1>User Profile</h1>
+    <p>{{content_text}}</p>
+
+
+
+    <!-- Test form -->
+
+    <form method="POST" action="/export_data">
+      <input type="text" name="title">
+      <input type="submit" value="Add">
+    </form>
+
+
+    <!-- Download data as CSV -->
+
+
+
+
+{% endblock %}
+
