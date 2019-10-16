@@ -1,9 +1,5 @@
-.DS_Store
-*.pyc
-.idea/
-.venv/
-.vscode/
-__pycache__
-src/
-oura_app_credentials.json
-data/
+_site
+.sass-cache
+.jekyll-cache
+.jekyll-metadata
+vendor

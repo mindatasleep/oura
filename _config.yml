@@ -18,12 +18,12 @@
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
 
-title: Mind & Sleep Data
+title: Disecting Sleep
 email: mindatasleep@gmail.com
 description: >- 
-  Looking at the relationship between sleep and performance using
-  the Oura wearable sleep tracker and simple math.
-baseurl: "" # the subpath of your site, e.g. /blog
+  Looking at sleep and performance
+  using the Oura ring + simple math.
+baseurl: "/oura" # the subpath of your site, e.g. /blog
 url: "mindatasleep.github.io/" # the base hostname & protocol for your site, e.g. http://example.com
 twitter_username: ""
 github_username:  ""

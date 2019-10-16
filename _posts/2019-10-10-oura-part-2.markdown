@@ -1,0 +1,15 @@
+---
+layout: post
+title:  "Part 2: Data warehousing with PostgreSQL"
+date:   2019-10-10 12:23:38 -0600
+categories: jekyll update
+---
+
+## Request and warehouse data into a PostgreSQL database
+
+In the preceding step you created a baseline Flask interface to authenticate and request the user's profile data using the Oura Cloud API. Now you'll request the user's daily summary data and store it in a PostgreSQL database.
+
+
+####1. Requesting daily summary data
+
+The Oura Cloud API provides the user information, and the user's data in 3 categories: sleep, activity, and readiness. Their schema and data types of available data appear in the [Daily Summary](https://cloud.ouraring.com/docs/daily-summaries) page.

@@ -1,11 +1,12 @@
-# Oura
+# Oura Flask app
 
-## [Visit interactive site.] (https://mindatasleep.github.io/oura/)
+Guide to create an app with Flask and MySQL to request data from the Oura Cloud API.
 
-### Python Command Line
+See: https://mindatasleep.github.io/oura/
 
-````
-python3 -m venv .venv
-source .venv/bin/activate
-pip3 install -r src/requirements.txt
-````
+
+## Host docs locally
+
+```
+bundle exec jekyll serve
+```
