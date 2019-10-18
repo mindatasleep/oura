@@ -1,7 +1,7 @@
 ---
 layout: page
 title: The Oura Ring
-permalink: /guide/oura/
+permalink: /oura/
 ---
 
 

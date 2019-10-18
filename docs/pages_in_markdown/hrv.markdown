@@ -1,7 +1,7 @@
 ---
 layout: page
 title: Heart Rate Variability
-permalink: /guide/hrv/
+permalink: /hrv/
 ---
 
 Heart Rate Variability (HRV) is a proxy metric for overall readiness. A high HRV appears to be a precursor to flow - a state of consciousness characterized by elevated awareness and performance.
