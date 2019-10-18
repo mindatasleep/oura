@@ -92,6 +92,8 @@ def summaries():
                                             .format(oauth_token)})
 
         result_json = result.json()
+        # Include a record_id as key to relate with oura_user_profiles table.
+        result_json['record_id'] = session['record_id']
 
         # Write to file
         # fp = DATA_DIR.joinpath(summary + '.json').as_posix()
@@ -112,6 +114,17 @@ def export_data():
     if request.form:
         print(request.form)
     return render_template("profile.html", context_text=str(request.form))
+
+
+@app.route('/dashboard')
+def dashboard():
+
+    ROOT = os.path.realpath(os.path.dirname(__file__))
+    json_path = os.path.join(ROOT, 'studies/output/plot_test.json')
+
+    return render_template(
+        "dashboard.html",
+        vega_json=json.load(open(json_path)))
 
 
 if __name__ == '__main__':

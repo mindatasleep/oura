@@ -14,13 +14,12 @@ def _get_logger():
         level=logging.WARN,
         format='%(name)-24s: %(levelname)-8s %(message)s',)
 
-    return logging.getLogger(f'OURA ERROR LOG::')
+    return logging.getLogger(f'OURA LOG::')
 
 
 LOGLEVEL = os.getenv('LOGLEVEL', 'DEBUG').upper()
 logger = _get_logger()
 logger.setLevel(LOGLEVEL)
-logger2 = logging.getLogger(f'OURA ERROR LOG::')
 
 
 # Set up Oura Cloud API credentials

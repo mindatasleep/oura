@@ -15,16 +15,28 @@
         <!-- Sidebar -->
         <div id="sidebar-wrapper">
             <ul class="sidebar-nav">
+
+
+                {% set navigation_bar = [
+                    ('/', 'index', 'Index'),
+                    ('/oura_login', 'oura_login', 'Oura Cloud Login'),
+                    ('/profile', 'profile', 'Profile'),
+                    ('/summaries', 'summaries', 'Summaries'),
+                    ('/dashboard', 'dashboard', 'Dashboard')
+                ] -%}
+                
+                {% set active_page = active_page|default('index') -%}
+                
                 <li class="sidebar-brand">
                     <a href="/">Mindatasleep</a>
                 </li>
-                <li><a href="#">Dashboard</a></li>
-                <li><a href="/oura_login">Oura Cloud Login</a></li>
-                <li><a href="/profile">Profile</a></li>
-                <li><a href="/summaries">Summaries</a></li>
-                <li><a href="#">About</a></li>
-                <li><a href="#">Services</a></li>
-                <li><a href="#">Contact</a></li>
+            
+                {% for href, id, caption in navigation_bar %}
+                    <li{% if id == active_page %} class="active"{% endif%}>
+                        <a href="{{ href|e }}">{{ caption|e }}</a>
+                    </li>
+                {% endfor %}
+
             </ul>
         </div>
         <!-- /#sidebar-wrapper -->
