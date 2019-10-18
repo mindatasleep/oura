@@ -5,7 +5,7 @@ Guide to create an app with Flask and MySQL to request data from the Oura Cloud 
 See: https://mindatasleep.github.io/oura/
 
 
-## Execute app from a virtual environment.
+## Execute app from a virtual environment
 ```
 python3 -m venv .venv
 source .venv/bin/activate
