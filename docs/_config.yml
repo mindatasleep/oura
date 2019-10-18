@@ -25,6 +25,7 @@ description: >-
   using the Oura ring + simple math.
 baseurl: "/oura" # the subpath of your site, e.g. /blog
 url: "mindatasleep.github.io/" # the base hostname & protocol for your site, e.g. http://example.com
+source: "/docs"
 twitter_username: ""
 github_username:  ""
 version: 1.0
