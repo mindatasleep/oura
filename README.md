@@ -1,14 +1,21 @@
 # Oura Flask app
 
-Guide to creating an app with Flask to request data from the Oura Cloud API.
+Guide to create an app with Flask and MySQL to request data from the Oura Cloud API.
 
 See: https://mindatasleep.github.io/guide/
 
 
-### Best practice to run from a virtual environment. Python Command Line:
+## Host locally
+```
+cd docs/
+bundle exec jekyll serve
+```
 
-````
+
+## Best practice to run from a virtual environment. 
+
+```
 python3 -m venv .venv
 source .venv/bin/activate
 pip3 install -r requirements.txt
-````
+```

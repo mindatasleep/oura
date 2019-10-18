@@ -1,5 +1,5 @@
 source "https://rubygems.org"
-gem "github-pages"
+gem "github-pages", group: :jekyll_plugins
 gem "jekyll-paginate"
 gem 'pygments.rb', '~> 0.6.3'
 gem 'redcarpet', '~> 3.3', '>= 3.3.4'
