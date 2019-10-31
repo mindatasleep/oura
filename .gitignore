@@ -7,3 +7,4 @@ __pycache__
 src/
 oura_app_credentials.json
 data/
+output/
