@@ -15,12 +15,12 @@ The Oura API uses the OAuth2 protocol for authentication, and requires a user to
 
 ### The app
 
-####1. Create an application in your Oura Cloud portal
+#### 1. Create an application in your Oura Cloud portal
 Log in to your Oura Cloud account and create a "New Application" in the [Applications Section](https://cloud.ouraring.com/oauth/applications). Complete the indicated fields, and set "Redirect URIs" to `http://0.0.0.0:3030/callback` when you run the app locally, and change it to the corresponding URL if you host the app online. 
 
-![img](/assets/Oura_Cloud_App.png 'Oura Cloud App portal')
+![img](/oura/assets/Oura_Cloud_App.png 'Oura Cloud App portal')
 
-The server-side authorization urls for your application appears on the bottom of the page and look like:
+The server-side authorization URLs for your application appears on the bottom of the page and looks like:
 
 `https://cloud.ouraring.com/oauth/authorize?client_id=<YOUR-CLIENT-ID>&state=XXX​&response_type=code`.
 
@@ -28,9 +28,9 @@ The server-side authorization urls for your application appears on the bottom of
 This URL brings up the Oura account verification page which redirects to the configured
 callback URL once the user logs in and selects what data to share.
 
-####2. Authenticate with the Oura Cloud API using Requests_OAuthlib
+#### 2. Authenticate with the Oura Cloud API using Requests_OAuthlib
 
-The [Requests_OAuthlib](https://requests-oauthlib.readthedocs.io/en/latest/) Python library instantiates an OAuth2 client that interfaces the Oura Cloud API. Configuring it grants permission to make requests and return the user's data. It requires parameters referencing your app, and an access token returned from Oura response url after a successful login. 
+The [Requests_OAuthlib](https://requests-oauthlib.readthedocs.io/en/latest/) Python library instantiates an OAuth2 client that interfaces the Oura Cloud API. Configuring it grants permission to make requests and return the user's data. It requires parameters referencing your app, and an access token returned from Oura response URL after a successful login. 
 
 A registered OAuth application has a unique Client ID and Client Secret. Copy the Client ID and Client Secret from the Oura app page you created in the previous step. These can be placed at the beginning of the app code while running locally, but should remain hidden once in production.
 
@@ -41,13 +41,13 @@ AUTH_URL = 'https://cloud.ouraring.com/oauth/authorize'
 TOKEN_URL = 'https://api.ouraring.com/oauth/token'
 ```
 
-To create a simple web user interface we use Flask to route the user's browser through three pages: **/oura_login** sets up a session for the app and redirect user to login at the Oura OAuth page,  **/callback** asserts the login and retrieves the user account access_token, and **/profile** requests and displays the user's information. 
+To create a simple web user interface we use Flask to route the user's browser through three pages: **/oura_login** sets up a session for the app and redirect user to log in at the Oura OAuth page,  **/callback** asserts the login and retrieves the user account access_token, and **/profile** requests and displays the user's information. 
 
 The **/oura_login** page creates an OAuth2Session for your app, and stores its state in a session, which makes it available from one request to the next. It redirects the browser to the Oura login page to confirm authorization.
 
-A successfully login redirects to the **/callback** page with an access token specified in the response url. The callback page fetches the token and stores it in the session, then redirects the browser to the user profile.
+A successful login redirects to the **/callback** page with an access token specified in the response URL. The callback page fetches the token and stores it in the session, then redirects the browser to the user profile.
 
-The user's authorization token grants permission to make requests to the Oura API for the user's data. The **/profile** page requests the user info with the following call `GET /v1/userinfo`. Notice how `oauth_token` is extracted from the session and appended to the requests url. To sanity-check whether data was successfully requested, the response JSON is rendered on the page.
+The user's authorization token grants permission to make requests to the Oura API for the user's data. The **/profile** page requests the user info with the following call `GET /v1/userinfo`. Notice how `oauth_token` is extracted from the session and appended to the requests URL. To sanity-check whether data was successfully requested, the response JSON is rendered on the page.
 
 ``` python
 import requests
@@ -86,7 +86,7 @@ def oura_login():
 
 @app.route('/callback')
 def callback():
-    """Retrieve acces_token from Oura response url. Redirect to profile page.
+    """Retrieve acces_token from Oura response URL. Redirect to profile page.
     """
 
     oura_session = OAuth2Session(CLIENT_ID, state=session['oauth_state'])
@@ -115,7 +115,7 @@ if __name__ == '__main__':
 
 ```
 
-####3. Execute the Flask app and request the user's profile information
+#### 3. Execute the Flask app and request the user's profile information
 Execute the app locally from the command line with `python3 oura/app.py` and visit http://0.0.0.0:3030/ on the browser. Click through the Oura login page, ensuring to keep the personal information access boxes ticked. The response will be displayed as a json:
 
 ``` json
