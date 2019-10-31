@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.8.5">Jekyll</generator><link href="http://localhost:4000/oura/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/oura/" rel="alternate" type="text/html" /><updated>2019-10-31T12:22:17-06:00</updated><id>http://localhost:4000/oura/feed.xml</id><title type="html">Disecting Sleep</title><subtitle>Looking at sleep and performance using the Oura ring + simple math.</subtitle><author><name>P. Guzman</name></author><entry><title type="html">Part 2: Data warehousing with PostgreSQL</title><link href="http://localhost:4000/oura/jekyll/update/2019/10/10/oura-part-2/" rel="alternate" type="text/html" title="Part 2: Data warehousing with PostgreSQL" /><published>2019-10-10T12:23:38-06:00</published><updated>2019-10-10T12:23:38-06:00</updated><id>http://localhost:4000/oura/jekyll/update/2019/10/10/oura-part-2</id><content type="html" xml:base="http://localhost:4000/oura/jekyll/update/2019/10/10/oura-part-2/">&lt;h2 id=&quot;request-and-warehouse-data-into-a-postgresql-database&quot;&gt;Request and warehouse data into a PostgreSQL database&lt;/h2&gt;
+
+&lt;p&gt;In the preceding step you created a baseline Flask interface to authenticate and request the user’s profile data using the Oura Cloud API. Now you’ll request the user’s daily summary data and store it in a PostgreSQL database.&lt;/p&gt;
+
+&lt;p&gt;####1. Requesting daily summary data&lt;/p&gt;
+
+&lt;p&gt;The Oura Cloud API provides the user information, and the user’s data in 3 categories: sleep, activity, and readiness. Their schema and data types of available data appear in the &lt;a href=&quot;https://cloud.ouraring.com/docs/daily-summaries&quot;&gt;Daily Summary&lt;/a&gt; page.&lt;/p&gt;</content><author><name>P. Guzman</name></author><summary type="html">Request and warehouse data into a PostgreSQL database</summary></entry><entry><title type="html">Part 1: Flask + Oura</title><link href="http://localhost:4000/oura/jekyll/update/2019/10/09/oura-part-1/" rel="alternate" type="text/html" title="Part 1: Flask + Oura" /><published>2019-10-09T12:23:38-06:00</published><updated>2019-10-09T12:23:38-06:00</updated><id>http://localhost:4000/oura/jekyll/update/2019/10/09/oura-part-1</id><content type="html" xml:base="http://localhost:4000/oura/jekyll/update/2019/10/09/oura-part-1/">&lt;h2 id=&quot;flask-app-to-interface-the-oura-cloud-api&quot;&gt;Flask app to interface the Oura Cloud API&lt;/h2&gt;
+
+&lt;p&gt;This app provides a minimalist interface to streamline user login through Oura Cloud API and request a user’s data. The Python 3 app is powered by the Flask framework for the back-end and React on the front-end.&lt;/p&gt;
+
+&lt;h3 id=&quot;the-oura-cloud-api&quot;&gt;The Oura Cloud API&lt;/h3&gt;
+
+&lt;p&gt;The Oura API uses the OAuth2 protocol for authentication, and requires a user to first log in to Oura to authorize calls to access the account’s data (see: &lt;a href=&quot;https://cloud.ouraring.com/docs/&quot;&gt;Oura docs&lt;/a&gt;). There are a number of guides detailing this process e.g. with a &lt;a href=&quot;https://python-ouraring.readthedocs.io/en/latest/auth.html&quot;&gt;3rd party oura Python library&lt;/a&gt;, the &lt;a href=&quot;https://sararobinson.dev/2019/05/24/analyzing-sleep-quality-oura-bigquery.html&quot;&gt;requests Python library and BigQuery&lt;/a&gt;, &lt;a href=&quot;https://medium.com/@lserafin/exploring-the-oura-cloud-api-with-postman-4d1c4abcd888&quot;&gt;Postman&lt;/a&gt;, and through the command line with &lt;a href=&quot;https://blog.adafruit.com/2017/10/02/using-curl-to-collect-oura-ring-sleep-activity-and-readiness-data/&quot;&gt;curl&lt;/a&gt;. This guide outlines how to build a web app dashboard to request, analyze, and display data from the Oura ring.&lt;/p&gt;
+
+&lt;h3 id=&quot;the-app&quot;&gt;The app&lt;/h3&gt;
+
+&lt;h4 id=&quot;1-create-an-application-in-your-oura-cloud-portal&quot;&gt;1. Create an application in your Oura Cloud portal&lt;/h4&gt;
+&lt;p&gt;Log in to your Oura Cloud account and create a “New Application” in the &lt;a href=&quot;https://cloud.ouraring.com/oauth/applications&quot;&gt;Applications Section&lt;/a&gt;. Complete the indicated fields, and set “Redirect URIs” to &lt;code class=&quot;highlighter-rouge&quot;&gt;http://0.0.0.0:3030/callback&lt;/code&gt; when you run the app locally, and change it to the corresponding URL if you host the app online.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/oura/assets/Oura_Cloud_App.png&quot; alt=&quot;img&quot; title=&quot;Oura Cloud App portal&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;The server-side authorization URLs for your application appears on the bottom of the page and looks like:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;https://cloud.ouraring.com/oauth/authorize?client_id=&amp;lt;YOUR-CLIENT-ID&amp;gt;&amp;amp;state=XXX​&amp;amp;response_type=code&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;This URL brings up the Oura account verification page which redirects to the configured
+callback URL once the user logs in and selects what data to share.&lt;/p&gt;
+
+&lt;h4 id=&quot;2-authenticate-with-the-oura-cloud-api-using-requests_oauthlib&quot;&gt;2. Authenticate with the Oura Cloud API using Requests_OAuthlib&lt;/h4&gt;
+
+&lt;p&gt;The &lt;a href=&quot;https://requests-oauthlib.readthedocs.io/en/latest/&quot;&gt;Requests_OAuthlib&lt;/a&gt; Python library instantiates an OAuth2 client that interfaces the Oura Cloud API. Configuring it grants permission to make requests and return the user’s data. It requires parameters referencing your app, and an access token returned from Oura response URL after a successful login.&lt;/p&gt;
+
+&lt;p&gt;A registered OAuth application has a unique Client ID and Client Secret. Copy the Client ID and Client Secret from the Oura app page you created in the previous step. These can be placed at the beginning of the app code while running locally, but should remain hidden once in production.&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;CLIENT_ID&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'YOUR_CLIENT_ID'&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;CLIENT_SECRET&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'YOUR_CLIENT_SECRET'&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;AUTH_URL&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'https://cloud.ouraring.com/oauth/authorize'&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;TOKEN_URL&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'https://api.ouraring.com/oauth/token'&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;To create a simple web user interface we use Flask to route the user’s browser through three pages: &lt;strong&gt;/oura_login&lt;/strong&gt; sets up a session for the app and redirect user to log in at the Oura OAuth page,  &lt;strong&gt;/callback&lt;/strong&gt; asserts the login and retrieves the user account access_token, and &lt;strong&gt;/profile&lt;/strong&gt; requests and displays the user’s information.&lt;/p&gt;
+
+&lt;p&gt;The &lt;strong&gt;/oura_login&lt;/strong&gt; page creates an OAuth2Session for your app, and stores its state in a session, which makes it available from one request to the next. It redirects the browser to the Oura login page to confirm authorization.&lt;/p&gt;
+
+&lt;p&gt;A successful login redirects to the &lt;strong&gt;/callback&lt;/strong&gt; page with an access token specified in the response URL. The callback page fetches the token and stores it in the session, then redirects the browser to the user profile.&lt;/p&gt;
+
+&lt;p&gt;The user’s authorization token grants permission to make requests to the Oura API for the user’s data. The &lt;strong&gt;/profile&lt;/strong&gt; page requests the user info with the following call &lt;code class=&quot;highlighter-rouge&quot;&gt;GET /v1/userinfo&lt;/code&gt;. Notice how &lt;code class=&quot;highlighter-rouge&quot;&gt;oauth_token&lt;/code&gt; is extracted from the session and appended to the requests URL. To sanity-check whether data was successfully requested, the response JSON is rendered on the page.&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;requests&lt;/span&gt;
+&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;os&lt;/span&gt;
+
+&lt;span class=&quot;kn&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;flask&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Flask&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;request&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;redirect&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;session&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;url_for&lt;/span&gt;
+&lt;span class=&quot;kn&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;requests_oauthlib&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;OAuth2Session&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;CLIENT_ID&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'THEAPPCLIENTID'&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;CLIENT_SECRET&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'THEAPPCLIENTSECRET'&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;AUTH_URL&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'https://cloud.ouraring.com/oauth/authorize'&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;TOKEN_URL&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'https://api.ouraring.com/oauth/token'&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;app&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Flask&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;__name__&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+
+&lt;span class=&quot;o&quot;&gt;@&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;route&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'/'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;index&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;():&lt;/span&gt;
+    &lt;span class=&quot;s&quot;&gt;&quot;&quot;&quot;Home page.
+    &quot;&quot;&quot;&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'&amp;lt;h1&amp;gt;Home page.&amp;lt;/h1&amp;gt;'&lt;/span&gt;
+
+
+&lt;span class=&quot;o&quot;&gt;@&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;route&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'/oura_login'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;oura_login&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;():&lt;/span&gt;
+    &lt;span class=&quot;s&quot;&gt;&quot;&quot;&quot;Redirect to the OAuth provider login page.
+    &quot;&quot;&quot;&lt;/span&gt;
+
+    &lt;span class=&quot;n&quot;&gt;oura_session&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;OAuth2Session&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;CLIENT_ID&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;# URL for Oura's authorization page.
+&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;authorization_url&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;state&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;oura_session&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;authorization_url&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;AUTH_URL&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;session&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'oauth_state'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;state&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;redirect&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;authorization_url&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+
+&lt;span class=&quot;o&quot;&gt;@&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;route&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'/callback'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;callback&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;():&lt;/span&gt;
+    &lt;span class=&quot;s&quot;&gt;&quot;&quot;&quot;Retrieve acces_token from Oura response URL. Redirect to profile page.
+    &quot;&quot;&quot;&lt;/span&gt;
+
+    &lt;span class=&quot;n&quot;&gt;oura_session&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;OAuth2Session&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;CLIENT_ID&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;state&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;session&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'oauth_state'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;session&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'oauth'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;oura_session&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fetch_token&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+                        &lt;span class=&quot;n&quot;&gt;TOKEN_URL&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                        &lt;span class=&quot;n&quot;&gt;client_secret&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;CLIENT_SECRET&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                        &lt;span class=&quot;n&quot;&gt;authorization_response&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;request&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;url&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;redirect&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;url_for&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'.profile'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+
+
+&lt;span class=&quot;o&quot;&gt;@&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;route&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'/profile'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;profile&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;():&lt;/span&gt;
+    &lt;span class=&quot;s&quot;&gt;&quot;&quot;&quot;User profile.
+    &quot;&quot;&quot;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;oauth_token&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;session&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'oauth'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;][&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'access_token'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;result&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;requests&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'https://api.ouraring.com/v1/userinfo?access_token='&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;oauth_token&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;result&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;json&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt; 
+
+
+&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;__name__&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'__main__'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+
+    &lt;span class=&quot;n&quot;&gt;os&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;environ&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'OAUTHLIB_INSECURE_TRANSPORT'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'1'&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;secret_key&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;os&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;urandom&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;24&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;run&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;debug&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;False&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;host&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'0.0.0.0'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;port&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;3030&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h4 id=&quot;3-execute-the-flask-app-and-request-the-users-profile-information&quot;&gt;3. Execute the Flask app and request the user’s profile information&lt;/h4&gt;
+&lt;p&gt;Execute the app locally from the command line with &lt;code class=&quot;highlighter-rouge&quot;&gt;python3 oura/app.py&lt;/code&gt; and visit http://0.0.0.0:3030/ on the browser. Click through the Oura login page, ensuring to keep the personal information access boxes ticked. The response will be displayed as a json:&lt;/p&gt;
+
+&lt;div class=&quot;language-json highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+     &lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;&quot;age&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;30&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+     &lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;&quot;weight&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;80&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+     &lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;&quot;gender&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;male&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+     &lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;&quot;email&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;sleeper@oura.cloud&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;Reaching this step asserts the app successfully authenticated which will allow the app to request the user’s daily summaries.&lt;/p&gt;
+
+&lt;p&gt;Part 2 of the guide shows how to request and warehouse sleep and activity data for the user’s account.&lt;/p&gt;</content><author><name>P. Guzman</name></author><summary type="html">Flask app to interface the Oura Cloud API</summary></entry></feed>

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en-us">
+
+<!-- CSS -->
+<link rel="stylesheet" href="/public/css/poole.css">
+<link rel="stylesheet" href="/public/css/syntax.css">
+<link rel="stylesheet" href="/public/css/hyde.css">
+<link rel="stylesheet" href="http://fonts.googleapis.com/css?family=PT+Sans:400,400italic,700|Abril+Fatface">
+
+<!-- Icons -->
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="public/apple-touch-icon-144-precomposed.png">
+                                <link rel="shortcut icon" href="public/favicon.ico">
+
+
+  <head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  <title>
+    
+      Part 1: Flask + Oura &middot; Disecting Sleep
+    
+  </title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/oura/public/css/poole.css">
+  <link rel="stylesheet" href="/oura/public/css/syntax.css">
+  <link rel="stylesheet" href="/oura/public/css/hyde.css">
+  <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=PT+Sans:400,400italic,700|Abril+Fatface">
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/oura/public/apple-touch-icon-144-precomposed.png">
+                                 <link rel="shortcut icon" href="/oura/public/favicon.ico">
+
+  <!-- RSS -->
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/atom.xml">
+</head>
+
+
+  <body>
+
+    <div class="sidebar">
+  <!-- <div class="container sidebar-sticky"> -->
+    <div class="sidebar-about">
+      <h1>
+        <a href="/oura">
+          Disecting Sleep
+        </a>
+      </h1>
+      <p class="lead">Looking at sleep and performance using the Oura ring + simple math.</p>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a class="sidebar-nav-item" href="/oura/">Home</a>
+
+      
+
+      <!-- Pages -->
+      
+      
+        
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/oura/about/">About</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/oura/hrv/">Heart Rate Variability</a>
+          
+        
+      
+        
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/oura/oura/">The Oura Ring</a>
+          
+        
+      
+        
+      
+        
+      
+
+      <!-- Posts -->
+      <p>Guides</p>
+      <ul>
+          
+            <li>
+              <a href="/oura/jekyll/update/2019/10/09/oura-part-1/">Part 1: Flask + Oura</a>
+            </li>
+          
+            <li>
+              <a href="/oura/jekyll/update/2019/10/10/oura-part-2/">Part 2: Data warehousing with PostgreSQL</a>
+            </li>
+          
+      </ul>
+
+      <a class="sidebar-nav-item" href="https://github.com/mindatasleep/oura">GitHub project</a>
+      <span class="sidebar-nav-item">v1.0</span>
+    </nav>
+
+    <p>&copy; 2019. All rights reserved.</p>
+  <!-- </div> -->
+</div>
+
+
+    <div class="content container">
+      <div class="post">
+  <h1 class="post-title">Part 1: Flask + Oura</h1>
+  <span class="post-date">09 Oct 2019</span>
+  <h2 id="flask-app-to-interface-the-oura-cloud-api">Flask app to interface the Oura Cloud API</h2>
+
+<p>This app provides a minimalist interface to streamline user login through Oura Cloud API and request a user’s data. The Python 3 app is powered by the Flask framework for the back-end and React on the front-end.</p>
+
+<h3 id="the-oura-cloud-api">The Oura Cloud API</h3>
+
+<p>The Oura API uses the OAuth2 protocol for authentication, and requires a user to first log in to Oura to authorize calls to access the account’s data (see: <a href="https://cloud.ouraring.com/docs/">Oura docs</a>). There are a number of guides detailing this process e.g. with a <a href="https://python-ouraring.readthedocs.io/en/latest/auth.html">3rd party oura Python library</a>, the <a href="https://sararobinson.dev/2019/05/24/analyzing-sleep-quality-oura-bigquery.html">requests Python library and BigQuery</a>, <a href="https://medium.com/@lserafin/exploring-the-oura-cloud-api-with-postman-4d1c4abcd888">Postman</a>, and through the command line with <a href="https://blog.adafruit.com/2017/10/02/using-curl-to-collect-oura-ring-sleep-activity-and-readiness-data/">curl</a>. This guide outlines how to build a web app dashboard to request, analyze, and display data from the Oura ring.</p>
+
+<h3 id="the-app">The app</h3>
+
+<h4 id="1-create-an-application-in-your-oura-cloud-portal">1. Create an application in your Oura Cloud portal</h4>
+<p>Log in to your Oura Cloud account and create a “New Application” in the <a href="https://cloud.ouraring.com/oauth/applications">Applications Section</a>. Complete the indicated fields, and set “Redirect URIs” to <code class="highlighter-rouge">http://0.0.0.0:3030/callback</code> when you run the app locally, and change it to the corresponding URL if you host the app online.</p>
+
+<p><img src="/oura/assets/Oura_Cloud_App.png" alt="img" title="Oura Cloud App portal" /></p>
+
+<p>The server-side authorization URLs for your application appears on the bottom of the page and looks like:</p>
+
+<p><code class="highlighter-rouge">https://cloud.ouraring.com/oauth/authorize?client_id=&lt;YOUR-CLIENT-ID&gt;&amp;state=XXX​&amp;response_type=code</code>.</p>
+
+<p>This URL brings up the Oura account verification page which redirects to the configured
+callback URL once the user logs in and selects what data to share.</p>
+
+<h4 id="2-authenticate-with-the-oura-cloud-api-using-requests_oauthlib">2. Authenticate with the Oura Cloud API using Requests_OAuthlib</h4>
+
+<p>The <a href="https://requests-oauthlib.readthedocs.io/en/latest/">Requests_OAuthlib</a> Python library instantiates an OAuth2 client that interfaces the Oura Cloud API. Configuring it grants permission to make requests and return the user’s data. It requires parameters referencing your app, and an access token returned from Oura response URL after a successful login.</p>
+
+<p>A registered OAuth application has a unique Client ID and Client Secret. Copy the Client ID and Client Secret from the Oura app page you created in the previous step. These can be placed at the beginning of the app code while running locally, but should remain hidden once in production.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">CLIENT_ID</span> <span class="o">=</span> <span class="s">'YOUR_CLIENT_ID'</span>
+<span class="n">CLIENT_SECRET</span> <span class="o">=</span> <span class="s">'YOUR_CLIENT_SECRET'</span>
+<span class="n">AUTH_URL</span> <span class="o">=</span> <span class="s">'https://cloud.ouraring.com/oauth/authorize'</span>
+<span class="n">TOKEN_URL</span> <span class="o">=</span> <span class="s">'https://api.ouraring.com/oauth/token'</span>
+</code></pre></div></div>
+
+<p>To create a simple web user interface we use Flask to route the user’s browser through three pages: <strong>/oura_login</strong> sets up a session for the app and redirect user to log in at the Oura OAuth page,  <strong>/callback</strong> asserts the login and retrieves the user account access_token, and <strong>/profile</strong> requests and displays the user’s information.</p>
+
+<p>The <strong>/oura_login</strong> page creates an OAuth2Session for your app, and stores its state in a session, which makes it available from one request to the next. It redirects the browser to the Oura login page to confirm authorization.</p>
+
+<p>A successful login redirects to the <strong>/callback</strong> page with an access token specified in the response URL. The callback page fetches the token and stores it in the session, then redirects the browser to the user profile.</p>
+
+<p>The user’s authorization token grants permission to make requests to the Oura API for the user’s data. The <strong>/profile</strong> page requests the user info with the following call <code class="highlighter-rouge">GET /v1/userinfo</code>. Notice how <code class="highlighter-rouge">oauth_token</code> is extracted from the session and appended to the requests URL. To sanity-check whether data was successfully requested, the response JSON is rendered on the page.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">from</span> <span class="nn">flask</span> <span class="kn">import</span> <span class="n">Flask</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">redirect</span><span class="p">,</span> <span class="n">session</span><span class="p">,</span> <span class="n">url_for</span>
+<span class="kn">from</span> <span class="nn">requests_oauthlib</span> <span class="kn">import</span> <span class="n">OAuth2Session</span>
+
+<span class="n">CLIENT_ID</span> <span class="o">=</span> <span class="s">'THEAPPCLIENTID'</span>
+<span class="n">CLIENT_SECRET</span> <span class="o">=</span> <span class="s">'THEAPPCLIENTSECRET'</span>
+<span class="n">AUTH_URL</span> <span class="o">=</span> <span class="s">'https://cloud.ouraring.com/oauth/authorize'</span>
+<span class="n">TOKEN_URL</span> <span class="o">=</span> <span class="s">'https://api.ouraring.com/oauth/token'</span>
+
+<span class="n">app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+
+
+<span class="o">@</span><span class="n">app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s">'/'</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">index</span><span class="p">():</span>
+    <span class="s">"""Home page.
+    """</span>
+    <span class="k">return</span> <span class="s">'&lt;h1&gt;Home page.&lt;/h1&gt;'</span>
+
+
+<span class="o">@</span><span class="n">app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s">'/oura_login'</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">oura_login</span><span class="p">():</span>
+    <span class="s">"""Redirect to the OAuth provider login page.
+    """</span>
+
+    <span class="n">oura_session</span> <span class="o">=</span> <span class="n">OAuth2Session</span><span class="p">(</span><span class="n">CLIENT_ID</span><span class="p">)</span>
+
+    <span class="c1"># URL for Oura's authorization page.
+</span>    <span class="n">authorization_url</span><span class="p">,</span> <span class="n">state</span> <span class="o">=</span> <span class="n">oura_session</span><span class="o">.</span><span class="n">authorization_url</span><span class="p">(</span><span class="n">AUTH_URL</span><span class="p">)</span>
+    <span class="n">session</span><span class="p">[</span><span class="s">'oauth_state'</span><span class="p">]</span> <span class="o">=</span> <span class="n">state</span>
+    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">authorization_url</span><span class="p">)</span>
+
+
+<span class="o">@</span><span class="n">app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s">'/callback'</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">callback</span><span class="p">():</span>
+    <span class="s">"""Retrieve acces_token from Oura response URL. Redirect to profile page.
+    """</span>
+
+    <span class="n">oura_session</span> <span class="o">=</span> <span class="n">OAuth2Session</span><span class="p">(</span><span class="n">CLIENT_ID</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="n">session</span><span class="p">[</span><span class="s">'oauth_state'</span><span class="p">])</span>
+    <span class="n">session</span><span class="p">[</span><span class="s">'oauth'</span><span class="p">]</span> <span class="o">=</span> <span class="n">oura_session</span><span class="o">.</span><span class="n">fetch_token</span><span class="p">(</span>
+                        <span class="n">TOKEN_URL</span><span class="p">,</span>
+                        <span class="n">client_secret</span><span class="o">=</span><span class="n">CLIENT_SECRET</span><span class="p">,</span>
+                        <span class="n">authorization_response</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">url</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">url_for</span><span class="p">(</span><span class="s">'.profile'</span><span class="p">))</span>
+
+
+<span class="o">@</span><span class="n">app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s">'/profile'</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">profile</span><span class="p">():</span>
+    <span class="s">"""User profile.
+    """</span>
+    <span class="n">oauth_token</span> <span class="o">=</span> <span class="n">session</span><span class="p">[</span><span class="s">'oauth'</span><span class="p">][</span><span class="s">'access_token'</span><span class="p">]</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">'https://api.ouraring.com/v1/userinfo?access_token='</span> <span class="o">+</span> <span class="n">oauth_token</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">json</span><span class="p">())</span> 
+
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">'__main__'</span><span class="p">:</span>
+
+    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s">'OAUTHLIB_INSECURE_TRANSPORT'</span><span class="p">]</span> <span class="o">=</span> <span class="s">'1'</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">secret_key</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">urandom</span><span class="p">(</span><span class="mi">24</span><span class="p">)</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="s">'0.0.0.0'</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">3030</span><span class="p">)</span>
+
+</code></pre></div></div>
+
+<h4 id="3-execute-the-flask-app-and-request-the-users-profile-information">3. Execute the Flask app and request the user’s profile information</h4>
+<p>Execute the app locally from the command line with <code class="highlighter-rouge">python3 oura/app.py</code> and visit http://0.0.0.0:3030/ on the browser. Click through the Oura login page, ensuring to keep the personal information access boxes ticked. The response will be displayed as a json:</p>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+     </span><span class="nl">"age"</span><span class="p">:</span><span class="w"> </span><span class="mi">30</span><span class="p">,</span><span class="w">
+     </span><span class="nl">"weight"</span><span class="p">:</span><span class="w"> </span><span class="mi">80</span><span class="p">,</span><span class="w">
+     </span><span class="nl">"gender"</span><span class="p">:</span><span class="w"> </span><span class="s2">"male"</span><span class="p">,</span><span class="w">
+     </span><span class="nl">"email"</span><span class="p">:</span><span class="w"> </span><span class="s2">"sleeper@oura.cloud"</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+<p>Reaching this step asserts the app successfully authenticated which will allow the app to request the user’s daily summaries.</p>
+
+<p>Part 2 of the guide shows how to request and warehouse sleep and activity data for the user’s account.</p>
+
+</div>
+
+<!-- <div class="related">
+  <h2>Related Posts</h2>
+  <ul class="related-posts">
+    
+      <li>
+        <h3>
+          <a href="/oura/jekyll/update/2019/10/10/oura-part-2/">
+            Part 2: Data warehousing with PostgreSQL
+            <small>10 Oct 2019</small>
+          </a>
+        </h3>
+      </li>
+    
+  </ul>
+</div> -->
+
+    </div>
+
+  </body>
+</html>
