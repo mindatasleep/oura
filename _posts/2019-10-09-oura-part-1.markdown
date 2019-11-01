@@ -5,7 +5,7 @@ date:   2019-10-09 12:23:38 -0600
 categories: jekyll update
 ---
 
-## Flask app to interface the Oura Cloud API
+## Part 1: Build a Flask app to interface the Oura Cloud API
 
 This app provides a minimalist interface to streamline user login through Oura Cloud API and request a user's data. The Python 3 app is powered by the Flask framework for the back-end and React on the front-end.
 

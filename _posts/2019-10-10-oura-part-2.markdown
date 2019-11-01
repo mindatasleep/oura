@@ -1,15 +1,229 @@
 ---
 layout: post
-title:  "Part 2: Data warehousing with PostgreSQL"
+title:  "Part 2: Warehouse and plot sleep data"
 date:   2019-10-10 12:23:38 -0600
 categories: jekyll update
 ---
 
-## Request and warehouse data into a PostgreSQL database
+## Part 2: Store and visualize sleep summary datasets
 
-In the preceding step you created a baseline Flask interface to authenticate and request the user's profile data using the Oura Cloud API. Now you'll request the user's daily summary data and store it in a PostgreSQL database.
+In the preceding step you created a baseline Flask interface to authenticate
+and request the user's profile data using the Oura Cloud API. 
+Now you'll create HTTP requests to retrieve a user's daily summary data,
+write it to CSV files, and visualize it. You'll generate quick plots using
+Altair, a declarative visualization library based on Vega.
+
+#### 0. Separate app credentials from the code (optional)
+
+The end-goal is to deploy a live app, so it's best practice to tuck credentials
+away from the code. The application will initiate by reading your Oura Cloud 
+App credentials from in `oura_app_credentials.json` on the root directory. Let's
+do this before getting started.
+
+``` python
+import json
+
+# Set up Oura Cloud API credentials
+with open('oura_app_credentials.json') as json_file:
+    credentials = json.load(json_file)
+
+CLIENT_ID = credentials['CLIENT_ID']
+CLIENT_SECRET = credentials['CLIENT_SECRET']
+AUTH_URL = 'https://cloud.ouraring.com/oauth/authorize'
+TOKEN_URL = 'https://api.ouraring.com/oauth/token'
+```
+
+`oura_app_credentials.json` 
+``` json
+{
+    "CLIENT_ID": "YOUR_OURA_APP_CLIENT_ID",
+    "CLIENT_SECRET": "YOUR_OURA_APP_CLIENT_SECRET"
+}
+```
+
+#### 1. Request daily summary data
+
+The Oura Cloud API provides the user information, and the user's data in 3 categories: sleep, activity, and readiness. The schema and data types of available data appear in the [Daily Summary](https://cloud.ouraring.com/docs/daily-summaries) page.
+
+Add a route to create request strings by looping through the three summary categories. The Oura Cloud API returns 
+
+Note that the `start` date in the request string below is set to `2018-01-01`. If start date is left out from the request, only the latest record is returned. Leaving `end` date unspecified returns a date range up to the latest record. 
+
+``` python
+import pandas as pd
+
+OUTPUT_PATH = 'output/'
 
 
-####1. Requesting daily summary data
+@app.route('/summaries')
+def summaries():
+    """Request data for sleep, activity, and readiness summaries. Save to CSV.
+    """
+    # Request data
+    oauth_token = session['oauth']['access_token']
+    summaries = ['sleep', 'activity', 'readiness']
 
-The Oura Cloud API provides the user information, and the user's data in 3 categories: sleep, activity, and readiness. Their schema and data types of available data appear in the [Daily Summary](https://cloud.ouraring.com/docs/daily-summaries) page.
+    # Loop through summary types
+    for summary in summaries:
+        url = 'https://api.ouraring.com/v1/' + summary + '?start=2018-01-01'
+
+        result = requests.get(url, headers={'Content-Type': 'application/json',
+                                            'Authorization': 'Bearer {}'
+                                            .format(oauth_token)})
+
+        # Convert response JSON to DataFrame
+        df = pd.DataFrame(result.json()[summary])
+        # Write CSV to output path
+        df.to_csv(OUTPUT_PATH + summary + '.csv')
+
+    return '<h1>Successfully requested summary data.</h1>'
+```
+
+You now have the complete data profile for the user account saved in 3 CSVs. Time to visualize them. We'll use the Altair library to interact with Vega plots.
+
+Here comes the fun part.
+
+#### 2. Create a Chart object with parameters specified by in the URL
+
+Read in the DataFrame and time-index it by setting `summary_date` as the index 
+column, which is a parameter common to the three datasets. Note that while 
+**activity** and **restfulness** datasets have contain 
+a single record per date, **sleep** might have more than one records attributed 
+to the same date due to multiple recorded sleep periods (i.e. naps). Modify 
+accordingly if this is the case with your data. For now we'll use a dataset with a 
+single record per date, and create a time series.
+
+Flask functions can take in parameters specified in the URL. Specifying the dataset
+name and the columns of interest in the route as such
+`'/plot/<summary>/<varnames>'` would establish the URL format in the browser to look like:
+`http://0.0.0.0:3030/plot/sleep/rmssd%20hr_average%20hr_lowest`, where column names
+are separated by a space (`%20`). `varnames.split(' ')` turns them into a list.
+
+The specified dataset and columns are read with `pandas`, and the `DataFrame` is
+melted based on the index date to conform with Altair's format. 
+
+Altair plots in two sentences: A `Chart` object takes in the `source` data 
+structure as a base, which creates line plots with the `mark_line()` function, 
+and assigns the column names to the `x`, `y`, and `color` attributes. Data types
+are specified with the `:T` and `:Q` tags, for **time** and **quantity** respectively. 
+[Read all about it.](https://altair-viz.github.io/getting_started/overview.html).
+
+``` python
+# Create Altair Chart object
+chart = alt.Chart(source).mark_line().encode(
+    x='summary_date:T',
+    y='value:Q',
+    color='variable',
+).properties(width=600, height=400)
+```
+
+Altair plots can be saved as a `.html` static file which can easily be 
+displayed with Flask's `render_template` which searches for the template file 
+name in a directory named `/templates` located at same level as the app executable.
+As such, save the Altair HTML plot file in that directory, specified below as 
+`TEMPLATES_PATH `
+
+``` python
+
+import altair as alt
+from flask import render_template
+
+TEMPLATES_PATH = 'app/templates/'
+
+@app.route('/plot')
+@app.route('/plot/<summary>/<varnames>')
+def plot(summary='sleep', varnames='rmssd'):
+    """Use the Altair library to plot the data indicated by the parsed URL
+    parameters.
+
+    <summary> : data category from the summaries list
+    <varnames> : column names from csv, separated by a (space) in the URL
+    """
+
+    CHART_NAME = 'plot1.html'
+
+    # Read CSV for selected summary
+    df = pd.read_csv(
+        OUTPUT_PATH + summary + '.csv',
+        index_col='summary_date',
+        parse_dates=True)[varnames.split(' ')]
+
+    # Create source data structure for Altair plot
+    source = df.reset_index().melt('summary_date')
+
+    # Create Altair Chart object
+    chart = alt.Chart(source).mark_line().encode(
+        x='summary_date:T',
+        y='value:Q',
+        color='variable',
+    ).properties(width=600, height=400)
+
+    # Save chart
+    chart.save(TEMPLATES_PATH + CHART_NAME)
+
+    return render_template(CHART_NAME)
+```
+
+We'll explore more dynamic ways of 
+interacting with Altair plots to build a dashboard later on. For now, since 
+the URL content directly modifies the rendered template, set
+`app.config['TEMPLATES_AUTO_RELOAD']` to `True` so the rendered static file 
+refreshes every time the URL refreshes.
+
+
+``` python
+if __name__ == '__main__':
+
+    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+    app.secret_key = os.urandom(24)
+    app.config['TEMPLATES_AUTO_RELOAD'] = True
+    app.run(debug=False, host='0.0.0.0', port=3030)
+```
+
+Try it out. Some column names from the **sleep** dataset are:
+
+```
+sleep_columns = ['awake', 'bedtime_end', 'bedtime_end_delta', 'bedtime_start', 'bedtime_start_delta', 'breath_average', 'deep', 'duration', 'efficiency', 'hr_5min', 'hr_average', 'hr_lowest', 'hypnogram_5min', 'is_longest', 'light', 'midpoint_at_delta', 'midpoint_time', 'onset_latency', 'period_id', 'rem', 'restless', 'rmssd', 'rmssd_5min', 'score', 'score_alignment', 'score_deep', 'score_disturbances', 'score_efficiency', 'score_latency', 'score_rem', 'score_total', 'temperature_delta', 'temperature_deviation', 'temperature_trend_deviation', 'timezone', 'total']
+```
+
+[Here's their description.](https://cloud.ouraring.com/docs/sleep) Most are single string or numeric values summarizing daily totals. Note that `hr_5min`, `hypnogram_5min`, and `rmssd_5min` are stringed lists of numbers corresponding to average heart rate, sleep zones (with '1' = deep, '2' = light, '3' = REM, and '4' = awake), and heart rate variability at 5 minute intervals, the first period starting from `bedtime_start`.
+
+#### 3. Scale the data for better visualization (optional)
+
+You'll notice that the scale of plots gets wonky if displaying multiple time 
+series with significantly different mangnitudes, making it difficult to notice 
+lower-magnitude values. An option is to set Y axes to as independent with 
+`chart.resolve_scale(axis='independent')`, but a quicker way
+during an exploratory stage is to scale the data.
+
+[`sklearn`'s `StandardScaler`](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html) 
+scales each Series of a DataFrame's with respect to itself, modifying
+each value as z = (x - u) / s. Note that the subset of columns to
+scale anly contains numerical values.
+
+``` python
+from sklearn.preprocessing import StandardScaler
+
+df_subset = df[['awake',
+                'bedtime_end_delta',
+                'bedtime_start_delta',
+                'breath_average', 'deep',
+                'duration', 'efficiency',
+                'hr_average', 'hr_lowest',
+                'period_id', 'rem',
+                'restless', 'rmssd',
+                'score', 'score_alignment',
+                'score_deep',
+                'score_rem', 'score_total',
+                'temperature_delta']]
+
+scaled_as_array = StandardScaler().fit_transform(df_subset)
+
+scaled_df = pd.DataFrame(scaled_as_array, columns=df_subset.columns)
+```
+
+You've now seen how to build a minimalist web app to request a user's data from
+Oura Cloud API, store it as a CSV, and visualize it using the Altair. The next 
+guides will cover how to run statistical analyses on the data, integrate it with 
+other datasets that measure performance, and how to Dockerize it as a live 
+web application.
