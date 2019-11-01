@@ -93,11 +93,17 @@ to the same date due to multiple recorded sleep periods (i.e. naps). Modify
 accordingly if this is the case with your data. For now we'll use a dataset with a 
 single record per date, and create a time series.
 
-Flask functions can take in parameters specified in the URL. Specifying the dataset
-name and the columns of interest in the route as such
-`'/plot/<summary>/<varnames>'` would establish the URL format in the browser to look like:
-`http://0.0.0.0:3030/plot/sleep/rmssd%20hr_average%20hr_lowest`, where column names
-are separated by a space (`%20`). `varnames.split(' ')` turns them into a list.
+Flask functions can take in parameters specified in the URL. Specify the dataset
+name and the columns of interest in the route as:
+
+`'/plot/<summary>/<varnames>'` 
+
+This sets the URL format in the browser to look like:
+
+`http://0.0.0.0:3030/plot/sleep/rmssd%20hr_average%20hr_lowest`
+
+Where column names are separated by a space (`%20`). `varnames.split(' ')` 
+creates a list with them to specify columns of interest.
 
 The specified dataset and columns are read with `pandas`, and the `DataFrame` is
 melted based on the index date to conform with Altair's format. 
@@ -183,7 +189,7 @@ if __name__ == '__main__':
 Try it out. Some column names from the **sleep** dataset are:
 
 ```
-sleep_columns = ['awake', 'bedtime_end', 'bedtime_end_delta', 'bedtime_start', 'bedtime_start_delta', 'breath_average', 'deep', 'duration', 'efficiency', 'hr_5min', 'hr_average', 'hr_lowest', 'hypnogram_5min', 'is_longest', 'light', 'midpoint_at_delta', 'midpoint_time', 'onset_latency', 'period_id', 'rem', 'restless', 'rmssd', 'rmssd_5min', 'score', 'score_alignment', 'score_deep', 'score_disturbances', 'score_efficiency', 'score_latency', 'score_rem', 'score_total', 'temperature_delta', 'temperature_deviation', 'temperature_trend_deviation', 'timezone', 'total']
+sleep_columns = ['awake', 'breath_average', 'deep', 'duration', 'efficiency', 'hr_average', 'hr_lowest', 'onset_latency', 'rem', 'restless', 'rmssd', 'score_total', 'temperature_delta', 'total']
 ```
 
 [Here's their description.](https://cloud.ouraring.com/docs/sleep) Most are single string or numeric values summarizing daily totals. Note that `hr_5min`, `hypnogram_5min`, and `rmssd_5min` are stringed lists of numbers corresponding to average heart rate, sleep zones (with '1' = deep, '2' = light, '3' = REM, and '4' = awake), and heart rate variability at 5 minute intervals, the first period starting from `bedtime_start`.
@@ -196,7 +202,7 @@ lower-magnitude values. An option is to set Y axes to as independent with
 `chart.resolve_scale(axis='independent')`, but a quicker way
 during an exploratory stage is to scale the data.
 
-[`sklearn`'s `StandardScaler`](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html) 
+[`sklearn` `StandardScaler`](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html) 
 scales each Series of a DataFrame's with respect to itself, modifying
 each value as z = (x - u) / s. Note that the subset of columns to
 scale anly contains numerical values.
