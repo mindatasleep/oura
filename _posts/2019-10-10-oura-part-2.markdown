@@ -7,11 +7,18 @@ categories: jekyll update
 
 ## Request and warehouse data into a PostgreSQL database
 
-In the preceding step you created a baseline Flask interface to authenticate and request the user's profile data using the Oura Cloud API. Now you'll request the user's daily summary data and save it in CSV files.
+In the preceding step you created a baseline Flask interface to authenticate
+and request the user's profile data using the Oura Cloud API. 
+Now you'll create HTTP requests to retrieve a user's daily summary data,
+write it to CSV files, and visualize it. You'll generate quick plots using
+Altair, a declarative visualization library based on Vega.
 
-#### 1. Separate app credentials from the code
+#### 0. Separate app credentials from the code (optional)
 
-Since we're moving toward deploying the app live, it's best practice to tuck credentials away from the code. Place your Oura Cloud App credentials in `oura_app_credentials.json` on the root directory and have the application read from it.
+The end-goal is to deploy a live app, so it's best practice to tuck credentials
+away from the code. The application will initiate by reading your Oura Cloud 
+App credentials from in `oura_app_credentials.json` on the root directory. Let's
+do this before getting started.
 
 ``` python
 import json
@@ -34,7 +41,7 @@ TOKEN_URL = 'https://api.ouraring.com/oauth/token'
 }
 ```
 
-#### 2. Request daily summary data
+#### 1. Request daily summary data
 
 The Oura Cloud API provides the user information, and the user's data in 3 categories: sleep, activity, and readiness. The schema and data types of available data appear in the [Daily Summary](https://cloud.ouraring.com/docs/daily-summaries) page.
 
@@ -76,7 +83,7 @@ You now have the complete data profile for the user account saved in 3 CSVs. Tim
 
 Here comes the fun part.
 
-#### 3. Create a Chart object with parameters specified by in the URL
+#### 2. Create a Chart object with parameters specified by in the URL
 
 Read in the DataFrame and time-index it by setting `summary_date` as the index 
 column, which is a parameter common to the three datasets. Note that while 
@@ -181,7 +188,7 @@ sleep_columns = ['awake', 'bedtime_end', 'bedtime_end_delta', 'bedtime_start', '
 
 [Here's their description.](https://cloud.ouraring.com/docs/sleep) Most are single string or numeric values summarizing daily totals. Note that `hr_5min`, `hypnogram_5min`, and `rmssd_5min` are stringed lists of numbers corresponding to average heart rate, sleep zones (with '1' = deep, '2' = light, '3' = REM, and '4' = awake), and heart rate variability at 5 minute intervals, the first period starting from `bedtime_start`.
 
-#### 4. (optional) Scale the data
+#### 3. Scale the data for better visualization (optional)
 
 You'll notice that the scale of plots gets wonky if displaying multiple time 
 series with significantly different mangnitudes, making it difficult to notice 
@@ -214,3 +221,9 @@ scaled_as_array = StandardScaler().fit_transform(df_subset)
 
 scaled_df = pd.DataFrame(scaled_as_array, columns=df_subset.columns)
 ```
+
+You've now seen how to build a minimalist web app to request a user's data from
+Oura Cloud API, store it as a CSV, and visualize it using the Altair. The next 
+guides will cover how to run statistical analyses on the data, integrate it with 
+other datasets that measure performance, and how to Dockerize it as a live 
+web application.
