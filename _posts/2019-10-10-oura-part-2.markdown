@@ -5,7 +5,7 @@ date:   2019-10-10 12:23:38 -0600
 categories: jekyll update
 ---
 
-## Part 2: Store and visualize sleep summary datasets
+## Store and visualize sleep summary datasets
 
 In the preceding step you created a baseline Flask interface to authenticate
 and request the user's profile data using the Oura Cloud API. 
