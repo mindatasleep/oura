@@ -7,9 +7,19 @@ categories: jekyll update
 
 ## Request and warehouse data into a PostgreSQL database
 
-In the preceding step you created a baseline Flask interface to authenticate and request the user's profile data using the Oura Cloud API. Now you'll request the user's daily summary data and store it in a PostgreSQL database.
+In the preceding step you created a baseline Flask interface to authenticate and request the user's profile data using the Oura Cloud API. Now you'll request the user's daily summary data and save it in CSV files. 
 
+#### 1. Separate app credentials from the code
 
-####1. Requesting daily summary data
+Since we're moving toward deploying the app live, it's best practice to tuck credentials away from the code. Place your Oura Cloud App credentials in `oura_app_credentials.json` on the root directory and have the application read from it. 
+
+``` json
+{
+    "CLIENT_ID": "YOUR_OURA_APP_CLIENT_ID",
+    "CLIENT_SECRET": "YOUR_OURA_APP_CLIENT_SECRET"
+}
+```
+
+#### 2. Requesting daily summary data
 
 The Oura Cloud API provides the user information, and the user's data in 3 categories: sleep, activity, and readiness. Their schema and data types of available data appear in the [Daily Summary](https://cloud.ouraring.com/docs/daily-summaries) page.
