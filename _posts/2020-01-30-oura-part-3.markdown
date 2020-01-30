@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Part 3: Deployment Pipeline for a Rails + Docker Workflow"
-date:   2020-30-01 10:13:28 -0600
+date:   2020-01-01 10:13:28 -0600
 categories: jekyll update
 ---
 
