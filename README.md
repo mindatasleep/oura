@@ -1,6 +1,6 @@
 # Oura Flask app
 
-Guide to create an app with Flask and MySQL to request data from the Oura Cloud API.
+Guide to create an app to interact with the Oura Cloud API.
 
 See: https://mindatasleep.github.io/oura/
 

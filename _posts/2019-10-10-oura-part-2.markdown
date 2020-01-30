@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Part 2: Warehouse and plot sleep data"
-date:   2019-10-10 12:23:38 -0600
+date:   2019-10-11 12:23:38 -0600
 categories: jekyll update
 ---
 
