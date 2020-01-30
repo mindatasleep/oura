@@ -11,7 +11,6 @@ Now that we're familiar with the basics of how to pull data from the Oura Cloud,
 
 ![img](/oura/assets/part3/logos_stack.png 'Stack')
 
-
 ## Introduction
 Lately I've been learning about using Docker to run web applications on the cloud. I found that guides and tutorials rather incomplete. Some tutorials poorly written, others that lead to dead ends with no concrete use-case, and others are simply outdated and not applicable to the latest versions of the technologies. 
 
