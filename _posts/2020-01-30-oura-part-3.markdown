@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Part 3: Deployment Pipeline for a Rails + Docker Workflow"
-date:   2020-01-01 12:23:38 -0600
+date:   2020-30-01 10:13:28 -0600
 categories: jekyll update
 ---
 
@@ -39,7 +39,7 @@ DigitalOcean Droplets are Linux-based virtual machines. They're cloud servers in
 First, create a project on DigitalOcean and generate a token on [your DigitalOcean API control panel](https://cloud.digitalocean.com/account/api/). See the [DigitalOcean API guide](https://www.digitalocean.com/docs/api/) for reference. You'll use the token to log into the `doctl` CLI. Keep it somewhere handy since it'll only be shown once. 
 Save the token as an environment variable:
 ```
-export DO_TOKEN='b946ecbba67643baebfb364ee22d2dfed8bed2de66ba089f63e1ca7f4bf9d3ee'
+export DO_TOKEN='b946ecbba67643ba ... 89f63e1ca7f4bf9d3ee'
 ```
 
 #### 1.2 Create a Docker droplet
