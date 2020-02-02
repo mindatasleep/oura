@@ -116,7 +116,7 @@ if __name__ == '__main__':
 ```
 
 #### 3. Execute the Flask app and request the user's profile information
-Execute the app locally from the command line with `python3 oura/app.py` and visit http://0.0.0.0:3030/ on the browser. Click through the Oura login page, ensuring to keep the personal information access boxes ticked. The response will be displayed as a json:
+Execute the app locally from the command line with `python3 oura/app.py` and visit [http://0.0.0.0:3030/oura_login](http://0.0.0.0:3030/oura_login) on the browser. Click through the Oura login page, ensuring to keep the personal information access boxes ticked. You should be redirected and see a page with JSON response:
 
 ``` json
 {
