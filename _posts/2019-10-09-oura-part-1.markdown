@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Part 1: Flask + Oura"
+title:  "Explore the Oura API using Flask (Part 1)"
 date:   2019-10-09 12:23:38 -0600
 categories: jekyll update
 ---
