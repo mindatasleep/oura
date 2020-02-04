@@ -1,13 +1,11 @@
 ---
 layout: post
-title:  "Automate a Deployment Pipeline for a Rails + Docker app"
+title:  "CI / CD Workflow for a Rails + Docker app"
 date:   2020-01-01 10:13:28 -0600
 categories: jekyll update
 ---
 
-Now that we're familiar with the basics of how to pull data from the Oura Cloud, we're going to turn up the volume and create a deployment pipeline to host our app as a cloud service.
-
-# CI / CD Workflow: Docker + Rails + PostgreSQL + GitLab CI/CD + DigitalOcean (January 2020)
+Now that we're familiar with the basics of how to pull data from the Oura Cloud, we're going to turn up the volume and create a deployment pipeline to host our app as a cloud service. **This is an overview on building a CI / CD Workflow using Docker + Rails + PostgreSQL + GitLab CI/CD + DigitalOcean.**
 
 Repo: [https://gitlab.com/mindatasleep/oura](https://gitlab.com/mindatasleep/oura)
 Live site: coming soon
@@ -427,9 +425,3 @@ Congratulations, you now have a CI/CD pipeline that you can implement for this a
 In the following walkthrough we'll create a Rails app to interact with data from Oura Cloud. 
 
 To familiarize yourself with how to interact with the Oura API, you can read the [minimalist overview on connecting to the Oura Cloud API using Flask](https://mindatasleep.github.io/oura/jekyll/update/2019/10/09/oura-part-1/) that I wrote a while back. For another perspective, here's [great and witty guide by Ismail Elouafiq.](https://medium.com/@nidhog/get-sleep-data-from-the-oura-ring-using-python-98eb0d6ae00a) Certainly check out his other writings on human performance experiments and data science. His voice is a treat to read.
-
-
-
-
-
-
