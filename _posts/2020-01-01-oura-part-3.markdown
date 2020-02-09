@@ -253,6 +253,34 @@ If things run correctly, you should be able to visit [http://0.0.0.0:3000/](http
 
 First, let's pop it onto the cloud.
 
+The app's cloud environment will need access to environmental variables and cacheing services not available in your local environment. As such, you'll create a separate Docker Compose file to run in your droplet: `snowtorch-oura/docker-compose.ci.yml`. 
+
+```
+version: '3.7'
+services:
+    web:
+        build: 
+            context: ./webapp
+            dockerfile: Dockerfile
+            cache_from:
+                - "${WEB_IMAGE}"
+        image: "${WEB_IMAGE}"
+        command: bash -c "rm -f tmp/pids/server.pid && bundle exec rails s -p 3000 -b '0.0.0.0'"
+        volumes:
+            -  ./webapp:/myapp
+        ports:
+            - "3000:3000"
+        env_file: .env
+        depends_on:
+            - db
+    db:
+        image: postgres:11.1
+        volumes:
+            - db-data:/var/lib/postgresql/data
+volumes:
+    db-data: {}
+```
+
 ### 4. Link GitLab CI/CD to DigitalOcean 
 GitLab is a source code management platform with a [CI/CD](https://opensource.com/article/18/8/what-cicd) pipeline. Useful for working with teams and to keep the code base from going bonkers. It checks that pushes to the code base don't have errors, and automatically deploys code to the environments it needs to go. We're going to connect it to a DigitalOcean instance so every `git push` gets deployed. Before beginning, you should read up on how to [Set Up CI Pipelines with GitLab CI on DigitalOcean](https://www.digitalocean.com/community/tutorials/how-to-set-up-continuous-integration-pipelines-with-gitlab-ci-on-ubuntu-16-04) to get an overview.
 
@@ -414,8 +442,6 @@ The deploy stage authenticates access to the DigitalOcean droplet using the priv
 #### 4.4 Send it!
 
 Push you code and watch the build logs of each job under the project's **CI/CD > Pipelines** dashboard. If the jobs succeed, the app should be online an accessible at http://YOUR_DROPLET_IP:3000/
-
-http://64.227.88.162:3000/picknick
 
 Congratulations, you now have a CI/CD pipeline that you can implement for this and other projects. Celebrate the small victories! 
 
