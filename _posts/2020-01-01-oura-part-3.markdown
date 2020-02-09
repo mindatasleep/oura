@@ -353,7 +353,7 @@ Look up your `DIGITAL_OCEAN_IP_ADDRESS` of the app's droplet by running `doctl c
 
 Look up the values of the database's `SQL_` variables with `curl -H 'Content-Type: application/json' -H 'Authorization: Bearer '$DO_TOKEN'' "https://api.digitalocean.com/v2/databases?name=postgresql-db" | jq '.databases[1].connection'`.
 
-##### 4.2.2 Create a file to set 
+##### 4.2.2 Create a file to set environmental variables
 On your app's directory, create a file called `setup_env.sh` to pull the environment variables securely stored in the GitLab repo's CI/CD settings into a file named `.env`. This is run by the command `bash ./setup_env.sh` in `.gitlab-ci.yml`.
 ```
 # setup_env.sh
